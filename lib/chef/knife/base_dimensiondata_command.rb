@@ -9,7 +9,7 @@ require 'dimensiondata'
 # Base class for dimensiondata knife commands
 class Chef
   class Knife
-    class BaseDimensionDataCommand < Knife
+    class BaseDimensiondataCommand < Knife
 
       deps do
         require 'chef/knife/bootstrap'
@@ -47,33 +47,9 @@ class Chef
                :description => "The datacenter for dimension data"
       end
 
-      def get_config(key)
-        key = key.to_sym
-        rval = config[key] || Chef::Config[:knife][key] || $default[key]
-        Chef::Log.debug("value for config item #{key}: #{rval}")
-        rval
-      end
-
       def get_dimensiondata_connection
-
-        conn_opts = {
-            :url => get_config(:dimensiondata_url),
-            :user => get_config(:dimensiondata_user),
-            :password => get_config(:dimensiondata_pass),
-            :dc => get_config(:dimensiondata_dc),
-        }
-
-        # Grab the password from the command line
-        # if tt is not in the config file
-        if not conn_opts[:password]
-          conn_opts[:password] = get_password
-        end
-
-        caas = DimensionData::Client.new config[:url], config[:user], config[:password], config[:dc]
-        config[:caas] = caas
-        return mcp
-
-
+        caas = DimensionData::Client.new(config[:dimensiondata_url], config[:dimensiondata_user], config[:dimensiondata_pass], config[:dimensiondata_dc])
+        return caas
       end
 
       def get_password

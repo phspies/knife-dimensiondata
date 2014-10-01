@@ -7,7 +7,7 @@ require 'chef/knife'
 require 'chef/knife/base_dimensiondata_command'
 
 # list networks in datacenter
-class Chef::Knife::DimensionDataNetworkList < Chef::Knife::BaseDimensionDataCommand
+class Chef::Knife::DimensiondataNetworkCreate < Chef::Knife::BaseDimensiondataCommand
   banner "knife dimensiondata network create (options)"
 
   get_common_options
@@ -24,12 +24,13 @@ class Chef::Knife::DimensionDataNetworkList < Chef::Knife::BaseDimensionDataComm
          :description => "Datacenter where server should be created"
 
   def run
+    caas = get_dimensiondata_connection
     if (config[:network].nil? || config[:dc].nil?)
       show_usage
       fatal_exit("You must specify both network and datacenter")
     end
 
-    mcp.network.create(config[:network], config[:dc], config[:description])
-
+    result = caas.network.create(config[:network], config[:dc], config[:description])
+    puts "#{ui.color("NETWORK", :cyan)}: #{ui.color(result.result_detail.split(" ")[5].chomp(")"), :red)}"
   end
 end
