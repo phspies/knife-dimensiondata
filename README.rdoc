@@ -34,7 +34,7 @@ Server Operations:
 
     gem install knife-dimensiondata
 
-= CONFIGURATION:
+== CONFIGURATION:
 
     knife[:dimensiondata_url] = "https://url"
     knife[:dimensiondata_user] = "admin username"
@@ -47,27 +47,27 @@ ERROR: OpenSSL::SSL::SSLError: SSL_connect returned=1 errno=0 state=SSLv3 read s
 
 Credentials can also be specified on the command line for multiple cloud locations
 
-= SUBCOMMANDS:
+== SUBCOMMANDS:
 
 This plugin provides the following Knife subcommands.  Specific command options can be found by invoking the subcommand with a <tt>--help</tt> flag
 
-== knife dimensiondata template list [-c ] [-p]
+=== knife dimensiondata template list [-c ] [-p]
 
 Enumerates the cloud templates registered in the target cloud datacenter.
     -c    - Display all customer defined cloud templates
     -p    - Display all platform defined cloud templates
 
-== knife dimensiondata network list [-d DATACENTER]
+=== knife dimensiondata network list [-d DATACENTER]
 
 Enumerates the cloud networks registered in the target cloud datacenter.
 
-== knife dimensiondata server list [-d DATACENTER] [-n NETWORK]
+=== knife dimensiondata server list [-d DATACENTER] [-n NETWORK]
 
 Enumerates the cloud servers registered in the target cloud datacenter.
     -d    - Display all cloud servers within a specific cloud datacenter
     -n    - Display all cloud servers within a specific cloud network
 
-== knife dimensiondata server state [-s STATE, --state STATE] [-w PORT, --wait-port PORT] [-g, --shutdown]
+=== knife dimensiondata server state [-s STATE, --state STATE] [-w PORT, --wait-port PORT] [-g, --shutdown]
 
 Manage power state of a cloud server.
 	-s STATE, --state STATE    - The power state to transition the server into; one of on|off|suspended
@@ -75,15 +75,15 @@ Manage power state of a cloud server.
 	-g, --shutdown             - Guest OS shutdown
     -p, --poweroff             - Server poweroff
 
-== knife dimensiondata acl list
+=== knife dimensiondata acl list
 
 Enumerates the access control lists on a particular network.
 
-== knife dimensiondata vip list
+=== knife dimensiondata vip list
 
 Enumerates the virtual ip's on a particular network.
 
-== knife dimensiondata vm deploy <new server name> --template <source template id> --network <network id>
+=== knife dimensiondata vm deploy <new server name> --template <source template id> --network <network id>
 
     knife dimensiondata server deploy Server
 
