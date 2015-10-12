@@ -32,6 +32,12 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
   option :pass,
          :long => "--password password",
          :description => "Password to set the Administrator user"
+  option :dnsservers,
+         :long => "--dnsservers dnsservers",
+         :description => "DNS servers to populate during deployment"
+  option :dnsdomain,
+         :long => "--dnsdomain dnsdomain",
+         :description => "DNS domain name to populate during deployment"
 
   def run
     caas = get_dimensiondata_connection
