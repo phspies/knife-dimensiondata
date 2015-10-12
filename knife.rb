@@ -11,9 +11,6 @@ chef_server_url          "https://api.opscode.com/organizations/mcplab"
 cookbook_path            ["#{current_dir}/../cookbooks"]
 
 
-
-knife[:linux_customization] = "~/oscustomization.sh"
-knife[:windows_customization] = "~/oscustomization.exe"
 knife[:dimensiondata_url] = "https://api-na.dimensiondata.com"
-knife[:dimensiondata_user] = "username"
-knife[:dimensiondata_pass] = "password"
+knife[:dimensiondata_user] = "p_spies"
+knife[:dimensiondata_pass] = "Money12345!"

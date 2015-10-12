@@ -29,12 +29,12 @@ class Chef
         option :dimensiondata_user,
                :short => "-u USERNAME",
                :long => "--dduser USERNAME",
-               :description => "The username for vsphere"
+               :description => "The username for cloud api"
 
         option :dimensiondata_pass,
                :short => "-p PASSWORD",
                :long => "--ddpass PASSWORD",
-               :description => "The password for vsphere"
+               :description => "The password for cloud api"
 
         option :dimensiondata_url,
                :short => "-u URL",

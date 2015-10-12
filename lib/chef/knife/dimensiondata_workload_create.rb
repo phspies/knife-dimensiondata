@@ -9,6 +9,12 @@ require 'netaddr'
 require 'sambal'
 require 'chef/knife/winrm_base'
 require 'chef/knife/deployment_helper'
+require 'winrm'
+require 'em-winrm'
+require 'chef/knife/winrm'
+require 'chef/knife/bootstrap_windows_winrm'
+require 'chef/knife/bootstrap_windows_ssh'
+require 'chef/knife/core/windows_bootstrap_context'
 
 # list networks in datacenter
 class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataCommand
@@ -29,7 +35,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
   option :vlan_id,
          :long => "--network_vlan vlan_id",
          :description => "Network vlan in which this workload should be created"
-  option :pass,
+  option :password,
          :long => "--password password",
          :description => "Password to set the Administrator user"
   option :dnsservers,
@@ -57,7 +63,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
       show_usage
       fatal_exit("You must specify network vlan id")
     end
-    if (config[:pass].nil?)
+    if (config[:password].nil?)
       show_usage
       fatal_exit("You must specify administrator/root password")
     end
@@ -84,16 +90,16 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     Chef::Log.debug("Upload OS customization code: #{connect_host}")
     case (workload.operating_system.family)
       when "WINDOWS"
-        client = Sambal::Client.new(domain: 'WORKGROUP', host: "#{connect_host}", share: 'C$', user: 'Administrator', password: 'config[:pass]', port: 445)
+        client = Sambal::Client.new(domain: 'WORKGROUP', host: "#{connect_host}", share: 'C$', user: 'Administrator', password: 'config[:password]', port: 445)
         client.put(config[:windows_customization],"c:\oscustomization.exe")
-        `winexe -user Administrator -password "#{config[:pass]}" //host ${connect_host} winrm quickconfig`
-        `winexe -user Administrator -password "#{config[:pass]}" //host ${connect_host} winrm set winrm/config/service/auth @{Basic="true"}`
-        `winexe -user Administrator -password "#{config[:pass]}" //host ${connect_host} winrm set winrm/config/service @{AllowUnencrypted="true"}`
-        `winexe -user Administrator -password "#{config[:pass]}" //host ${connect_host} "c:\oscustomization.exe /hostname:#{config[:hostname]} /dnsservers:#{config[:dnsservers]} /dnsdomain:#{config[:dnsdomain]} /reboot+"`
+        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm quickconfig`
+        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm set winrm/config/service/auth @{Basic="true"}`
+        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm set winrm/config/service @{AllowUnencrypted="true"}`
+        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} "c:\oscustomization.exe /hostname:#{config[:hostname]} /dnsservers:#{config[:dnsservers]} /dnsdomain:#{config[:dnsdomain]} /reboot+"`
       when "LINUX"
-        `sshpass -p '#{config[:pass]}' scp #{config[:linux_customization]} root@#{connect_host}:/tmp`
-        `sshpass -p '#{config[:pass]}' ssh root@#{connect_host} /tmp/oscustomization.sh #{config[:hostname]} #{config[:dnsservers]} #{config[:dnsdomain]}`
-        `sshpass -p '#{config[:pass]}' ssh root@#{connect_host} reboot`
+        `sshpass -p '#{config[:password]}' scp #{config[:linux_customization]} root@#{connect_host}:/tmp`
+        `sshpass -p '#{config[:password]}' ssh root@#{connect_host} /tmp/oscustomization.sh #{config[:hostname]} #{config[:dnsservers]} #{config[:dnsdomain]}`
+        `sshpass -p '#{config[:password]}' ssh root@#{connect_host} reboot`
     end
     sleep(10)
     wait_for_deploy(workload, caas, 300, 10)
@@ -271,12 +277,4 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     tcp_socket && tcp_socket.close
   end
 
-  def load_winrm_deps
-    require 'winrm'
-    require 'em-winrm'
-    require 'chef/knife/winrm'
-    require 'chef/knife/bootstrap_windows_winrm'
-    require 'chef/knife/bootstrap_windows_ssh'
-    require 'chef/knife/core/windows_bootstrap_context'
-  end
 end
