@@ -40,15 +40,10 @@ class Chef
                :short => "-u URL",
                :long => "--ddurl URL",
                :description => "The dimension data cloud geo url"
-
-        option :dimensiondata_dc,
-               :short => "-d DATACENTER",
-               :long => "--dddc DATACENTER",
-               :description => "The datacenter for dimension data"
       end
 
       def get_dimensiondata_connection
-        caas = DimensionData::Client.new(config[:dimensiondata_url], config[:dimensiondata_user], config[:dimensiondata_pass], config[:dimensiondata_dc])
+        caas = DimensionData::Client.new(config[:dimensiondata_url], config[:dimensiondata_user], config[:dimensiondata_pass])
         return caas
       end
 

@@ -12,31 +12,40 @@ class Chef::Knife::DimensiondataNetworkList < Chef::Knife::BaseDimensiondataComm
   banner "knife dimensiondata network list (options)"
 
   get_common_options
-  option :dc,
-         :short => "-dc DC",
-         :long => "--datacenter DC",
-         :description => "Datacenter to list all networks"
 
   def run
     caas = get_dimensiondata_connection
-    if :dc
-      if config[:dc].nil?
-        show_usage
-        fatal_exit("You must specify a datacenter")
-      end
-      @networks = caas.network.list_in_location(config[:dc])
-    else
-      @networks = caas.network.list
-    end
+    @domains = caas.network2.list_domains
 
-    case @networks
+    case @domains
       when Array
-        @networks.each do | network |
-          puts "#{ui.color("NETWORK", :cyan)}: #{ui.color("#{network.id}", :red)} - #{network.name}"
+        @domains.each do | domain |
+          puts "#{ui.color("DOMAIN", :cyan)}: #{ui.color("#{domain.id}", :red)} - #{domain.name}"
+          @vlans = caas.network2.list_vlans_in_domain(domain.id)
+          case @vlans
+            when Array
+              @vlans.each do | vlan |
+                puts "    #{ui.color("VLAN", :cyan)}: #{ui.color("#{vlan.id}", :red)} - #{vlan.name}"
+              end
+            when Hash
+              vlan = @vlans
+              puts "     #{ui.color("VLAN", :cyan)}: #{ui.color("#{vlan.id}", :red)} - #{vlan.name}"
+          end
+
         end
       when Hash
-        network = @networks
-        puts "#{ui.color("NETWORK", :cyan)}: #{ui.color("#{network.id}", :red)} - #{network.name}"
+        domain = @domains
+        puts "#{ui.color("DOMAIN", :cyan)}: #{ui.color("#{domain.id}", :red)} - #{domain.name}"
+        @vlans = caas.network2.list_vlans_in_domain(domain.id)
+        case @vlans
+          when Array
+            @vlans.each do | vlan |
+              puts "    #{ui.color("VLAN", :cyan)}: #{ui.color("#{vlan.id}", :red)} - #{vlan.name}"
+            end
+          when Hash
+            vlan = @vlans
+            puts "     #{ui.color("VLAN", :cyan)}: #{ui.color("#{vlan.id}", :red)} - #{vlan.name}"
+        end
     end
 
 
