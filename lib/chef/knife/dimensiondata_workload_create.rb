@@ -8,7 +8,6 @@ require 'chef/knife/base_dimensiondata_command'
 require 'netaddr'
 require 'sambal'
 require 'chef/knife/winrm_base'
-require 'chef/knife/deployment_helper'
 require 'winrm'
 require 'em-winrm'
 require 'chef/knife/winrm'
@@ -79,7 +78,8 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     network_vlan = caas.network2.get_vlan(config[:vlan_id])
     puts "Creating workload #{config[:vm_name]} in #{network_domain.name} network domain and #{network_vlan.name} vlan"
 
-    result = caas.server2.create_with_vlan(config[:vm_name], nil,config[:domain_id], config[:vlan_id], config[:template_id], config[:pass])
+    result = caas.server2.create_with_vlan(config[:vm_name], "",config[:domain_id], config[:vlan_id], config[:template_id], config[:password], true)
+    puts "Created workload #{result.info.value}"
 
     workload = caas.server2.show(result.info.value)
 
@@ -123,7 +123,26 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     end
   end
 
+  def wait_for_deploy(workload, caas_connection, timeout, sleep_time)
 
+    wait = true
+    waited_seconds = 0
+
+    print 'Waiting for workload to deploy...'
+    while wait
+
+      @workload = caas_connection.server2.show(workload.id)
+      if @workload.state == "NORMAL"
+        wait = false
+      elsif waited_seconds >= timeout
+        abort "\nCustomization of VM #{vm.name} not succeeded within #{timeout} seconds."
+      else
+        print '.'
+        sleep(sleep_time)
+        waited_seconds += sleep_time
+      end
+    end
+  end
   def wait_for_access(connect_host, connect_port, protocol)
     if protocol == 'winrm'
       load_winrm_deps

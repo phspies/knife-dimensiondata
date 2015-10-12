@@ -12,5 +12,7 @@ cookbook_path            ["#{current_dir}/../cookbooks"]
 
 
 knife[:dimensiondata_url] = "https://api-na.dimensiondata.com"
-knife[:dimensiondata_user] = "p_spies"
-knife[:dimensiondata_pass] = "Money12345!"
+knife[:dimensiondata_user] = ""
+knife[:dimensiondata_pass] = ""
+knife[:windows_customization] = "oscustomization.exe"
+knife[:linux_customization] = "oscustomization.sh"
