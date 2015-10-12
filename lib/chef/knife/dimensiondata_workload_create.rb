@@ -90,7 +90,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     Chef::Log.debug("Upload OS customization code: #{connect_host}")
     case (workload.operating_system.family)
       when "WINDOWS"
-        client = Sambal::Client.new(domain: 'WORKGROUP', host: "#{connect_host}", share: 'C$', user: 'Administrator', password: 'config[:password]', port: 445)
+        client = Sambal::Client.new(domain: 'WORKGROUP', host: "#{connect_host}", share: 'C$', user: 'Administrator', password: "#{config[:password]}", port: 445)
         client.put(config[:windows_customization],"c:\oscustomization.exe")
         `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm quickconfig`
         `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm set winrm/config/service/auth @{Basic="true"}`
@@ -102,7 +102,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
         `sshpass -p '#{config[:password]}' ssh root@#{connect_host} reboot`
     end
     sleep(10)
-    wait_for_deploy(workload, caas, 300, 10)
+    wait_for_deploy(workload, caas, 1800, 10)
 
     Chef::Log.debug("Connect Host for Bootstrap: #{connect_host}")
     connect_port = get_config(:ssh_port)
@@ -135,7 +135,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
       if @workload.state == "NORMAL"
         wait = false
       elsif waited_seconds >= timeout
-        abort "\nCustomization of VM #{vm.name} not succeeded within #{timeout} seconds."
+        abort "\nDeployment of VM #{workload.name} not succeeded within #{timeout} seconds."
       else
         print '.'
         sleep(sleep_time)
