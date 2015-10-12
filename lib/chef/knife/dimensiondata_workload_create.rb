@@ -83,7 +83,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
 
     workload = caas.server2.show(result.info.value)
 
-    wait_for_deploy(workload, caas, 300, 10)
+    wait_for_deploy(workload, caas, 1800, 10)
 
     connect_host = workload.network_info.primary_nic.ipv6
 
