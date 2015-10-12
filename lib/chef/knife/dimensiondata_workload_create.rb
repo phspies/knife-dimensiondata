@@ -83,7 +83,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
 
     workload = caas.server2.show(result.info.value)
 
-    wait_for_deploy(workload, caas, 300, 10)
+    wait_for_deploy(workload, caas, 1800, 10)
 
     connect_host = workload.network_info.primary_nic.ipv6
 
@@ -102,7 +102,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
         `sshpass -p '#{config[:password]}' ssh root@#{connect_host} reboot`
     end
     sleep(10)
-    wait_for_deploy(workload, caas, 1800, 10)
+    wait_for_deploy(workload, caas, 300, 10)
 
     Chef::Log.debug("Connect Host for Bootstrap: #{connect_host}")
     connect_port = get_config(:ssh_port)
