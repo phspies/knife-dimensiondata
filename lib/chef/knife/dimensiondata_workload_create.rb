@@ -40,6 +40,12 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
   option :dnsservers,
          :long => "--dnsservers dnsservers",
          :description => "DNS servers to populate during deployment"
+  option :windows_customization,
+         :long => "--windows_customization file",
+         :description => "Windows customization script"
+  option :linux_customization,
+         :long => "--linux_customization file",
+         :description => "Linux customization script"
   option :dnsdomain,
          :long => "--dnsdomain dnsdomain",
          :description => "DNS domain name to populate during deployment"
@@ -87,39 +93,45 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
 
     connect_host = workload.network_info.primary_nic.ipv6
 
-    Chef::Log.debug("Upload OS customization code: #{connect_host}")
+    print "\n#{ui.color("Uploading OS customization code to #{connect_host}")}\n"
+    print "\n#{ui.color("Host Preperation Type: #{workload.operating_system.family}")}\n"
     case (workload.operating_system.family)
       when "WINDOWS"
         client = Sambal::Client.new(domain: 'WORKGROUP', host: "#{connect_host}", share: 'C$', user: 'Administrator', password: "#{config[:password]}", port: 445)
         client.put(config[:windows_customization],"c:\oscustomization.exe")
-        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm quickconfig`
-        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm set winrm/config/service/auth @{Basic="true"}`
-        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} winrm set winrm/config/service @{AllowUnencrypted="true"}`
-        `winexe -user Administrator -password "#{config[:password]}" //host ${connect_host} "c:\oscustomization.exe /hostname:#{config[:hostname]} /dnsservers:#{config[:dnsservers]} /dnsdomain:#{config[:dnsdomain]} /reboot+"`
-      when "LINUX"
-        `sshpass -p '#{config[:password]}' scp #{config[:linux_customization]} root@#{connect_host}:/tmp`
-        `sshpass -p '#{config[:password]}' ssh root@#{connect_host} /tmp/oscustomization.sh #{config[:hostname]} #{config[:dnsservers]} #{config[:dnsdomain]}`
-        `sshpass -p '#{config[:password]}' ssh root@#{connect_host} reboot`
-    end
-    sleep(10)
-    wait_for_deploy(workload, caas, 300, 10)
+        winrm = WinRM::WinRMWebService.new("http://[#{connect_host}]:5985/wsman", :plaintext, :user => "Administrator", :pass => "#{config[:password]}", :basic_auth_only => true)
+        winrm.cmd("c:\oscustomization.exe /hostname:#{config[:vm_name]} /dnsservers:#{config[:dnsservers]} /dnsdomain:#{config[:dnsdomain]} /reboot+")
+        sleep(30)
+        wait_for_access(connect_host, 5986, 'winrm')
+      when "UNIX"
+        `ssh-keyscan -H #{connect_host} >> ~/.ssh/known_hosts`
 
-    Chef::Log.debug("Connect Host for Bootstrap: #{connect_host}")
-    connect_port = get_config(:ssh_port)
-    protocol = get_config(:bootstrap_protocol)
+        print "\n#{ui.color("Host Preperation Type: #{workload.operating_system.family}")}"
+
+        `sshpass -p "#{config[:password]}" scp -6 #{config[:linux_customization]} root@\[#{connect_host}\]:/tmp`
+
+        case (workload.operating_system.id)
+          when /REDHAT/
+          when /CENTOS/
+            `sshpass -p "#{config[:password]}" ssh root@#{connect_host} yum install wget`
+          when /UBUNTU/
+            `sshpass -p "#{config[:password]}" ssh root@#{connect_host} apt-get install wget`
+          when /SUSE/
+
+        end
+
+        `sshpass -p "#{config[:password]}" ssh root@#{connect_host} /tmp/oscustomization.sh #{config[:vm_name]} #{config[:dnsservers]} #{config[:dnsdomain]}`
+        `sshpass -p "#{config[:password]}" ssh root@#{connect_host} reboot`
+        sleep(10)
+        wait_for_access(connect_host, 22, 'ssh')
+    end
+    print "\n#{ui.color("Connect Host for Bootstrap: #{connect_host} #{workload.operating_system.family}")}\n"
     case (workload.operating_system.family)
       when "WINDOWS"
-        protocol ||= 'winrm'
-        # Set distro to windows-chef-client-msi
         config[:distro] = 'windows-chef-client-msi' if config[:distro].nil? || config[:distro] == 'chef-full'
-        wait_for_access(connect_host, connect_port, protocol)
-        ssh_override_winrm
-        bootstrap_for_windows_node.run
-      when "LINUX"
-        protocol ||= 'ssh'
-        wait_for_access(connect_host, connect_port, protocol)
-        ssh_override_winrm
-        bootstrap_for_node.run
+        bootstrap_for_windows_node(config[:vm_name], connect_host)
+      when "UNIX"
+        bootstrap_for_linux_node(config[:vm_name],connect_host)
     end
   end
 
@@ -150,13 +162,13 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
         config[:winrm_port] = '5986'
       end
       connect_port = get_config(:winrm_port)
-      print "\n#{ui.color("Waiting for winrm access to become available on #{connect_host}:#{connect_port}",:magenta)}"
+      print "\n#{ui.color("Waiting for winrm access to become available on #{connect_host}:#{connect_port}",:magenta)}\n"
       print('.') until tcp_test_winrm(connect_host, connect_port) do
         sleep 10
         puts('done')
       end
     else
-      print "\n#{ui.color("Waiting for sshd access to become available on #{connect_host}:#{connect_port}", :magenta)}"
+      print "\n#{ui.color("Waiting for sshd access to become available on #{connect_host}:#{connect_port}", :magenta)}\n"
       print('.') until tcp_test_ssh(connect_host, connect_port) do
         sleep 10
         puts('done')
@@ -164,82 +176,36 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     end
     connect_port
   end
-  def bootstrap_common_params(bootstrap)
-    bootstrap.config[:run_list] = config[:run_list]
-    bootstrap.config[:bootstrap_version] = get_config(:bootstrap_version)
-    bootstrap.config[:distro] = get_config(:distro)
-    bootstrap.config[:template_file] = get_config(:template_file)
-    bootstrap.config[:environment] = get_config(:environment)
-    bootstrap.config[:prerelease] = get_config(:prerelease)
-    bootstrap.config[:first_boot_attributes] = get_config(:first_boot_attributes)
-    bootstrap.config[:hint] = get_config(:hint)
-    bootstrap.config[:chef_node_name] = get_config(:chef_node_name)
-    bootstrap.config[:bootstrap_vault_file] = get_config(:bootstrap_vault_file)
-    bootstrap.config[:bootstrap_vault_json] = get_config(:bootstrap_vault_json)
-    bootstrap.config[:bootstrap_vault_item] = get_config(:bootstrap_vault_item)
-    # may be needed for vpc mode
-    bootstrap.config[:no_host_key_verify] = get_config(:no_host_key_verify)
-    bootstrap
+  def load_winrm_deps
+    require 'winrm'
+    require 'em-winrm'
+    require 'chef/knife/bootstrap_windows_winrm'
+    require 'chef/knife/core/windows_bootstrap_context'
+    require 'chef/knife/winrm'
   end
-
-  def bootstrap_for_windows_node
+  def bootstrap_for_windows_node(hostname,ip)
     Chef::Knife::Bootstrap.load_deps
-    if get_config(:bootstrap_protocol) == 'winrm' || get_config(:bootstrap_protocol).nil?
-      bootstrap = Chef::Knife::BootstrapWindowsWinrm.new
-      bootstrap.name_args = [config[:fqdn]]
-      bootstrap.config[:winrm_user] = get_config(:winrm_user)
-      bootstrap.config[:winrm_password] = get_config(:winrm_password)
-      bootstrap.config[:winrm_transport] = get_config(:winrm_transport)
-      bootstrap.config[:winrm_port] = get_config(:winrm_port)
-    elsif get_config(:bootstrap_protocol) == 'ssh'
-      bootstrap = Chef::Knife::BootstrapWindowsSsh.new
-      bootstrap.config[:ssh_user] = get_config(:ssh_user)
-      bootstrap.config[:ssh_password] = get_config(:ssh_password)
-      bootstrap.config[:ssh_port] = get_config(:ssh_port)
-    else
-      ui.error('Unsupported Bootstrapping Protocol. Supports : winrm, ssh')
-      exit 1
-    end
-    bootstrap_common_params(bootstrap)
+    bootstrap = Chef::Knife::BootstrapWindowsWinrm.new
+    bootstrap.name_args = ip
+    bootstrap.config[:winrm_user] = 'Administrator'
+    bootstrap.config[:chef_node_name] = hostname
+    bootstrap.config[:winrm_password] = config[:password]
+    bootstrap.config[:winrm_transport] = 'winrm'
+    bootstrap.config[:winrm_port] = '5985'
+    bootstrap.run
+
   end
 
-  def bootstrap_for_node
+  def bootstrap_for_linux_node(hostname,ip)
     Chef::Knife::Bootstrap.load_deps
     bootstrap = Chef::Knife::Bootstrap.new
-    bootstrap.name_args = [config[:fqdn]]
-    bootstrap.config[:secret_file] = get_config(:secret_file)
-    bootstrap.config[:ssh_user] = get_config(:ssh_user)
-    bootstrap.config[:ssh_password] = get_config(:ssh_password)
-    bootstrap.config[:ssh_port] = get_config(:ssh_port)
-    bootstrap.config[:identity_file] = get_config(:identity_file)
-    bootstrap.config[:use_sudo] = true unless get_config(:ssh_user) == 'root'
-    bootstrap.config[:log_level] = get_config(:log_level)
-    bootstrap_common_params(bootstrap)
-  end
-
-  def ssh_override_winrm
-    # unchanged ssh_user and changed winrm_user, override ssh_user
-    if get_config(:ssh_user).eql?(options[:ssh_user][:default]) &&
-        !get_config(:winrm_user).eql?(options[:winrm_user][:default])
-      config[:ssh_user] = get_config(:winrm_user)
-    end
-
-    # unchanged ssh_port and changed winrm_port, override ssh_port
-    if get_config(:ssh_port).eql?(options[:ssh_port][:default]) &&
-        !get_config(:winrm_port).eql?(options[:winrm_port][:default])
-      config[:ssh_port] = get_config(:winrm_port)
-    end
-
-    # unset ssh_password and set winrm_password, override ssh_password
-    if get_config(:ssh_password).nil? &&
-        !get_config(:winrm_password).nil?
-      config[:ssh_password] = get_config(:winrm_password)
-    end
-
-    # unset identity_file and set kerberos_keytab_file, override identity_file
-    return unless get_config(:identity_file).nil? && !get_config(:kerberos_keytab_file).nil?
-
-    config[:identity_file] = get_config(:kerberos_keytab_file)
+    bootstrap.name_args = ip
+    bootstrap.config[:ssh_user] = 'root'
+    bootstrap.config[:chef_node_name] = hostname
+    bootstrap.config[:ssh_password] = config[:password]
+    bootstrap.config[:ssh_port] = '22'
+    bootstrap.config[:use_sudo] = false
+    bootstrap.run
   end
 
   def tcp_test_ssh(hostname, ssh_port)
