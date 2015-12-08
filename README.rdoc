@@ -18,13 +18,6 @@ Template Operations:
 
     1. install sshpass
     2. gem install knife-dimensiondata
-gem install knife-block --no-rdoc --no-ri 
-gem install knife-audit --no-rdoc --no-ri 
-gem install knife-preflight --no-rdoc --no-ri 
-gem install knife-essentials --no-rdoc --no-ri 
-gem install knife-env-diff --no-rdoc --no-ri 
-gem install knife-flip --no-rdoc --no-ri 
-gem install chef --no-rdoc --no-ri
 
 == CONFIGURATION:
 
