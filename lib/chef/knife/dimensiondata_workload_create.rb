@@ -6,16 +6,13 @@
 require 'chef/knife'
 require 'chef/knife/base_dimensiondata_command'
 require 'netaddr'
-require 'sambal'
 require 'chef/knife/winrm_base'
 require 'winrm'
-require 'em-winrm'
 require 'chef/knife/winrm'
 require 'chef/knife/bootstrap_windows_winrm'
 require 'chef/knife/bootstrap_windows_ssh'
 require 'chef/knife/core/windows_bootstrap_context'
 
-# list networks in datacenter
 class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataCommand
 
   banner "knife dimensiondata workload create (options)"
@@ -97,31 +94,26 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     print "\n#{ui.color("Host Preperation Type: #{workload.operating_system.family}")}\n"
     case (workload.operating_system.family)
       when "WINDOWS"
-        client = Sambal::Client.new(domain: 'WORKGROUP', host: "#{connect_host}", share: 'C$', user: 'Administrator', password: "#{config[:password]}", port: 445)
-        client.put(config[:windows_customization],"c:\oscustomization.exe")
         winrm = WinRM::WinRMWebService.new("http://[#{connect_host}]:5985/wsman", :plaintext, :user => "Administrator", :pass => "#{config[:password]}", :basic_auth_only => true)
-        winrm.cmd("c:\oscustomization.exe /hostname:#{config[:vm_name]} /dnsservers:#{config[:dnsservers]} /dnsdomain:#{config[:dnsdomain]} /reboot+")
+        puts winrm.cmd("c:\oscustomization.exe /hostname:#{config[:vm_name]} /dnsservers:#{config[:dnsservers]} /dnsdomain:#{config[:dnsdomain]} /reboot+")
         sleep(30)
         wait_for_access(connect_host, 5986, 'winrm')
       when "UNIX"
         `ssh-keyscan -H #{connect_host} >> ~/.ssh/known_hosts`
-
-        print "\n#{ui.color("Host Preperation Type: #{workload.operating_system.family}")}"
-
-        `sshpass -p "#{config[:password]}" scp -6 #{config[:linux_customization]} root@\[#{connect_host}\]:/tmp`
-
+        puts "Working with #{workload.operating_system.id}"
         case (workload.operating_system.id)
           when /REDHAT/
           when /CENTOS/
-            `sshpass -p "#{config[:password]}" ssh root@#{connect_host} yum install wget`
+            puts `sshpass -p "#{config[:password]}" ssh -6 root@#{connect_host} 'yum -y clean all'`
+            puts `sshpass -p "#{config[:password]}" ssh -6 root@#{connect_host} 'yum -y install wget'`
           when /UBUNTU/
-            `sshpass -p "#{config[:password]}" ssh root@#{connect_host} apt-get install wget`
+            puts `sshpass -p "#{config[:password]}" ssh -6 root@#{connect_host} 'apt-get install wget -f'`
           when /SUSE/
-
-        end
-
-        `sshpass -p "#{config[:password]}" ssh root@#{connect_host} /tmp/oscustomization.sh #{config[:vm_name]} #{config[:dnsservers]} #{config[:dnsdomain]}`
-        `sshpass -p "#{config[:password]}" ssh root@#{connect_host} reboot`
+	end
+        print "\n#{ui.color("Host Preperation Type: #{workload.operating_system.family}")}"
+        puts `sshpass -p "#{config[:password]}" scp -6 #{config[:linux_customization]} root@\[#{connect_host}\]:/tmp`
+        puts `sshpass -p "#{config[:password]}" ssh -6 root@#{connect_host} /tmp/oscustomization.sh #{config[:vm_name]} #{config[:dnsservers]} #{config[:dnsdomain]}`
+        puts `sshpass -p "#{config[:password]}" ssh -6 root@#{connect_host} reboot`
         sleep(10)
         wait_for_access(connect_host, 22, 'ssh')
     end

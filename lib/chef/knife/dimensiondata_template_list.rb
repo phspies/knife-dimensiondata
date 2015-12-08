@@ -23,9 +23,21 @@ class Chef::Knife::DimensiondataTemplateList < Chef::Knife::BaseDimensiondataCom
       show_usage
       fatal_exit("You must specify datacenter id for this knife")
     end
-    @templates = caas.image.template_list_in_location(config[:dc])
-    @templates.map {| template |
-      puts "#{ui.color("Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
+    @platformtemplates = caas.image.template_list_in_location(config[:dc])
+    @platformtemplates.map {| template |
+      puts "#{ui.color("Platform Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
     }
+    @customertemplates = caas.image.template_labels_in_location(config[:dc])
+    if (@customertemplates.kind_of?(Array))
+    	@customertemplates.map {| template |
+      		puts "#{ui.color("Customer Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
+    	}
+    end
+    if (!@customertemplates.empty?)
+	template = @customertemplates
+	puts "#{ui.color("Customer Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
+    end
+
+
   end
 end
