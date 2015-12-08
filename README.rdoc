@@ -36,11 +36,11 @@ Credentials can also be specified on the command line for multiple cloud locatio
 
 This plugin provides the following Knife subcommands.  Specific command options can be found by invoking the subcommand with a <tt>--help</tt> flag
 
-=== knife dimensiondata template list [-c ] [-p]
+=== knife dimensiondata template list 
 
 Enumerates the platform and customer templates registered in the target cloud datacenter.
 
-=== knife dimensiondata network list [-d DATACENTER]
+=== knife dimensiondata network list [--datacenter DATACENTER]
 
 Enumerates the cloud network domains and vlans registered in the target cloud datacenter.
 
