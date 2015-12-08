@@ -82,6 +82,7 @@ class Chef::Knife::DimensiondataWorkloadCreate < Chef::Knife::BaseDimensiondataC
     puts "Creating workload #{config[:vm_name]} in #{network_domain.name} network domain and #{network_vlan.name} vlan"
 
     result = caas.server2.create_with_vlan(config[:vm_name], "",config[:domain_id], config[:vlan_id], config[:template_id], config[:password], true)
+    puts $result
     puts "Created workload #{result.info.value}"
 
     workload = caas.server2.show(result.info.value)
