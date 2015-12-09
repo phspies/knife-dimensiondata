@@ -26,12 +26,6 @@ Template Operations:
     knife[:dimensiondata_pass] = "your password"
     knife[:dimensiondata_dc] = "datacenter within region"
 
-If you get the following error, you may need to disable SSL certificate checking:
-ERROR: OpenSSL::SSL::SSLError: SSL_connect returned=1 errno=0 state=SSLv3 read server certificate B: certificate verify failed
-    knife[:dimensiondata_insecure] = true
-
-Credentials can also be specified on the command line for multiple cloud locations
-
 == SUBCOMMANDS:
 
 This plugin provides the following Knife subcommands.  Specific command options can be found by invoking the subcommand with a <tt>--help</tt> flag
