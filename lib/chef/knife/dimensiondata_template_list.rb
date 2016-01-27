@@ -29,15 +29,12 @@ class Chef::Knife::DimensiondataTemplateList < Chef::Knife::BaseDimensiondataCom
     }
     @customertemplates = caas.image.template_labels_in_location(config[:dc])
     if (@customertemplates.kind_of?(Array))
-    	@customertemplates.map {| template |
-      		puts "#{ui.color("Customer Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
-    	}
+      @customertemplates.map {| template |
+        puts "#{ui.color("Customer Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
+    }
+    elsif (!@customertemplates.empty?)
+      template = @customertemplates
+      puts "#{ui.color("Customer Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
     end
-    if (!@customertemplates.empty?)
-	template = @customertemplates
-	puts "#{ui.color("Customer Template", :cyan)}: #{ui.color("#{template.id}", :red)} - #{template.name} (#{template.cpu_count} cores,#{template.memory_mb}mb memory)"
-    end
-
-
   end
 end
